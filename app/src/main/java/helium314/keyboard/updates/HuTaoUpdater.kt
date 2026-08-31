@@ -22,6 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -78,14 +79,7 @@ object HuTaoUpdater {
 
         scope.launch {
             try {
-                val update = fetchUpdateManifest()
-                prefs.edit {
-                    putLong(KEY_LAST_SUCCESS, System.currentTimeMillis())
-                    putLong(KEY_VERSION_CODE, update.versionCode)
-                    putString(KEY_VERSION_NAME, update.versionName)
-                    putString(KEY_APK_URL, update.apkUrl)
-                    putString(KEY_SHA256, update.sha256)
-                }
+                val update = fetchAndCacheUpdate(appContext)
                 if (update.versionCode > BuildConfig.VERSION_CODE) {
                     showUpdateNotification(appContext, update)
                 } else {
@@ -96,6 +90,17 @@ object HuTaoUpdater {
             } finally {
                 checking.set(false)
             }
+        }
+    }
+
+    suspend fun checkNow(context: Context): HuTaoUpdateInfo? = withContext(Dispatchers.IO) {
+        val appContext = context.applicationContext
+        check(isUserUnlocked(appContext)) { "Unlock the device before checking for updates" }
+        val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit { putLong(KEY_LAST_ATTEMPT, System.currentTimeMillis()) }
+        val update = fetchAndCacheUpdate(appContext)
+        update.takeIf { it.versionCode > BuildConfig.VERSION_CODE }.also {
+            if (it == null) NotificationManagerCompat.from(appContext).cancel(NOTIFICATION_ID)
         }
     }
 
@@ -159,6 +164,18 @@ object HuTaoUpdater {
         } finally {
             connection.disconnect()
         }
+    }
+
+    private fun fetchAndCacheUpdate(context: Context): HuTaoUpdateInfo {
+        val update = fetchUpdateManifest()
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit {
+            putLong(KEY_LAST_SUCCESS, System.currentTimeMillis())
+            putLong(KEY_VERSION_CODE, update.versionCode)
+            putString(KEY_VERSION_NAME, update.versionName)
+            putString(KEY_APK_URL, update.apkUrl)
+            putString(KEY_SHA256, update.sha256)
+        }
+        return update
     }
 
     private fun fetchUpdateManifest(): HuTaoUpdateInfo {

@@ -37,6 +37,7 @@ import helium314.keyboard.settings.Setting
 import helium314.keyboard.settings.preferences.Preference
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.SettingsActivity
+import helium314.keyboard.updates.HuTaoUpdateActivity
 import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.latin.utils.previewDark
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +54,7 @@ fun AboutScreen(
     val items = listOf(
         SettingsWithoutKey.APP,
         SettingsWithoutKey.VERSION,
+        SettingsWithoutKey.CHECK_FOR_UPDATES,
         SettingsWithoutKey.LICENSE,
         SettingsWithoutKey.HIDDEN_FEATURES,
         SettingsWithoutKey.GITHUB_WIKI,
@@ -92,6 +94,20 @@ fun createAboutSettings(context: Context) = listOf(
                 Toast.makeText(ctx, R.string.prefs_debug_settings_enabled, Toast.LENGTH_LONG).show()
             },
             icon = R.drawable.ic_settings_about
+        )
+    },
+    Setting(
+        context,
+        SettingsWithoutKey.CHECK_FOR_UPDATES,
+        R.string.hu_tao_check_for_updates,
+        R.string.hu_tao_check_for_updates_description,
+    ) {
+        val ctx = LocalContext.current
+        Preference(
+            name = it.title,
+            description = it.description,
+            onClick = { ctx.startActivity(HuTaoUpdateActivity.createCheckIntent(ctx)) },
+            icon = R.drawable.hu_tao_update_notification,
         )
     },
     Setting(context, SettingsWithoutKey.LICENSE, R.string.license, R.string.gnu_gpl) {

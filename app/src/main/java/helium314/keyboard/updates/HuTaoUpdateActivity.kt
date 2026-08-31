@@ -2,6 +2,7 @@
 package helium314.keyboard.updates
 
 import android.content.ClipData
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -59,35 +60,41 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 private enum class UpdateStage {
+    CHECKING,
     READY,
     DOWNLOADING,
     ALLOW_INSTALLS,
     OPENING_INSTALLER,
-    ERROR,
+    CHECK_ERROR,
+    DOWNLOAD_ERROR,
 }
 
 class HuTaoUpdateActivity : ComponentActivity() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var stage by mutableStateOf(UpdateStage.READY)
+    private var update by mutableStateOf<HuTaoUpdateInfo?>(null)
     private var errorMessage by mutableStateOf<String?>(null)
     private var pendingInstall: File? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        update = HuTaoUpdater.getAvailableUpdate(this)
         setContent {
             Theme(dark = true) {
                 Surface(color = HuTaoBackground) {
                     UpdateScreen(
-                        update = HuTaoUpdater.getAvailableUpdate(this),
+                        update = update,
                         stage = stage,
                         errorMessage = errorMessage,
                         onBack = ::finish,
+                        onCheck = ::checkNow,
                         onDownload = ::downloadAndInstall,
                     )
                 }
             }
         }
+        if (intent.getBooleanExtra(EXTRA_CHECK_NOW, false)) checkNow()
     }
 
     override fun onResume() {
@@ -104,8 +111,24 @@ class HuTaoUpdateActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    private fun checkNow() {
+        errorMessage = null
+        stage = UpdateStage.CHECKING
+        scope.launch {
+            runCatching { HuTaoUpdater.checkNow(this@HuTaoUpdateActivity) }
+                .onSuccess {
+                    update = it
+                    stage = UpdateStage.READY
+                }
+                .onFailure {
+                    errorMessage = it.message ?: it.javaClass.simpleName
+                    stage = UpdateStage.CHECK_ERROR
+                }
+        }
+    }
+
     private fun downloadAndInstall() {
-        val update = HuTaoUpdater.getAvailableUpdate(this) ?: return
+        val update = update ?: return
         errorMessage = null
         stage = UpdateStage.DOWNLOADING
         scope.launch {
@@ -116,7 +139,7 @@ class HuTaoUpdateActivity : ComponentActivity() {
             }.onSuccess { requestInstall(it) }
                 .onFailure {
                     errorMessage = it.message ?: it.javaClass.simpleName
-                    stage = UpdateStage.ERROR
+                    stage = UpdateStage.DOWNLOAD_ERROR
                 }
         }
     }
@@ -147,8 +170,15 @@ class HuTaoUpdateActivity : ComponentActivity() {
             startActivity(intent)
         }.onFailure {
             errorMessage = it.message ?: it.javaClass.simpleName
-            stage = UpdateStage.ERROR
+            stage = UpdateStage.DOWNLOAD_ERROR
         }
+    }
+
+    companion object {
+        private const val EXTRA_CHECK_NOW = "check_now"
+
+        fun createCheckIntent(context: Context) =
+            Intent(context, HuTaoUpdateActivity::class.java).putExtra(EXTRA_CHECK_NOW, true)
     }
 }
 
@@ -164,6 +194,7 @@ private fun UpdateScreen(
     stage: UpdateStage,
     errorMessage: String?,
     onBack: () -> Unit,
+    onCheck: () -> Unit,
     onDownload: () -> Unit,
 ) {
     Box(
@@ -215,13 +246,25 @@ private fun UpdateScreen(
                     modifier = Modifier.size(72.dp),
                 )
                 Spacer(Modifier.height(16.dp))
-                if (update == null) {
+                if (stage == UpdateStage.CHECKING) {
+                    UpdateProgress(R.string.hu_tao_update_checking)
+                } else if (stage == UpdateStage.CHECK_ERROR) {
+                    UpdateError(errorMessage)
+                    UpdateButton(R.string.hu_tao_update_retry, onCheck)
+                } else if (update == null) {
                     Text(
                         text = stringResource(R.string.hu_tao_update_up_to_date),
                         color = HuTaoIvory,
                         fontSize = 20.sp,
                         textAlign = TextAlign.Center,
                     )
+                    Text(
+                        text = stringResource(R.string.hu_tao_update_current_version, BuildConfig.VERSION_NAME),
+                        color = HuTaoGold.copy(alpha = 0.75f),
+                        fontSize = 14.sp,
+                    )
+                    Spacer(Modifier.height(24.dp))
+                    UpdateButton(R.string.hu_tao_update_check_again, onCheck)
                 } else {
                     Text(
                         text = stringResource(R.string.hu_tao_update_ready),
@@ -244,38 +287,43 @@ private fun UpdateScreen(
                     )
                     Spacer(Modifier.height(24.dp))
                     when (stage) {
-                        UpdateStage.READY, UpdateStage.ERROR -> {
-                            if (stage == UpdateStage.ERROR && errorMessage != null) {
-                                Text(
-                                    text = stringResource(R.string.hu_tao_update_failed, errorMessage),
-                                    color = Color(0xFFFFAAA7),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(bottom = 14.dp),
-                                )
-                            }
-                            Button(
-                                onClick = onDownload,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = HuTaoRed,
-                                    contentColor = HuTaoIvory,
-                                ),
-                            ) {
-                                Text(
-                                    text = stringResource(
-                                        if (stage == UpdateStage.ERROR) R.string.hu_tao_update_retry
-                                        else R.string.hu_tao_update_download,
-                                    ),
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
+                        UpdateStage.READY -> UpdateButton(R.string.hu_tao_update_download, onDownload)
+                        UpdateStage.DOWNLOAD_ERROR -> {
+                            UpdateError(errorMessage)
+                            UpdateButton(R.string.hu_tao_update_retry, onDownload)
                         }
                         UpdateStage.DOWNLOADING -> UpdateProgress(R.string.hu_tao_update_downloading)
                         UpdateStage.ALLOW_INSTALLS -> UpdateProgress(R.string.hu_tao_update_allow_installs)
                         UpdateStage.OPENING_INSTALLER -> UpdateProgress(R.string.hu_tao_update_opening_installer)
+                        UpdateStage.CHECKING, UpdateStage.CHECK_ERROR -> Unit
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun UpdateError(errorMessage: String?) {
+    if (errorMessage == null) return
+    Text(
+        text = stringResource(R.string.hu_tao_update_failed, errorMessage),
+        color = Color(0xFFFFAAA7),
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(bottom = 14.dp),
+    )
+}
+
+@Composable
+private fun UpdateButton(text: Int, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = HuTaoRed,
+            contentColor = HuTaoIvory,
+        ),
+    ) {
+        Text(text = stringResource(text), fontWeight = FontWeight.Bold)
     }
 }
 
