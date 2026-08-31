@@ -1120,7 +1120,7 @@ public class LatinIME extends InputMethodService implements
     public void hideWindow() {
         Log.i(TAG, "hideWindow");
         if (hasSuggestionStripView() && mSettings.getCurrent().mToolbarMode == ToolbarMode.EXPANDABLE)
-            mSuggestionStripView.setToolbarVisibility(false);
+            mSuggestionStripView.setToolbarVisibility(true);
         mKeyboardSwitcher.onHideWindow();
 
         if (TRACE) Debug.stopMethodTracing();

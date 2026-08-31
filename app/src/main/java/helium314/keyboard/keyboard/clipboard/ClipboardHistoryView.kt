@@ -5,6 +5,7 @@ package helium314.keyboard.keyboard.clipboard
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Color
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
@@ -104,12 +105,18 @@ class ClipboardHistoryView @JvmOverloads constructor(
             placeholderView = this@ClipboardHistoryView.placeholderView
         }
         val clipboardStrip = KeyboardSwitcher.getInstance().clipboardStrip
+        rootView.findViewById<ImageButton>(R.id.clipboard_toolbar_backpack_key).setOnClickListener {
+            sendToolbarCode(KeyCode.ALPHA)
+        }
+        rootView.findViewById<ImageButton>(R.id.clipboard_toolbar_return_key).setOnClickListener {
+            sendToolbarCode(KeyCode.ALPHA)
+        }
         toolbarKeys.forEach {
             clipboardStrip.addView(it)
             it.setOnClickListener(this@ClipboardHistoryView)
             it.setOnLongClickListener(this@ClipboardHistoryView)
             colors.setColor(it, ColorType.TOOL_BAR_KEY)
-            colors.setBackground(it, ColorType.STRIP_BACKGROUND)
+            it.setBackgroundColor(Color.TRANSPARENT)
         }
     }
 
@@ -209,6 +216,15 @@ class ClipboardHistoryView @JvmOverloads constructor(
                 return
             }
         }
+    }
+
+    private fun sendToolbarCode(code: Int) {
+        AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(
+            KeyCode.NOT_SPECIFIED, this, HapticEvent.KEY_PRESS
+        )
+        keyboardActionListener.onCodeInput(
+            code, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false
+        )
     }
 
     override fun onLongClick(view: View): Boolean {

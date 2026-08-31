@@ -9,11 +9,11 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2"
     tools:ignore="MissingTranslation">
     <!-- Name of Android spell checker service. The app name should not be translated. -->
-    <string name="spell_checker_service_name">HeliBoard Spell Checker</string>
+    <string name="spell_checker_service_name">Hu Tao Board Spell Checker</string>
     <!-- Title for IME settings screen. The app name should not be translated. -->
-    <string name="ime_settings">HeliBoard Settings</string>
+    <string name="ime_settings">Hu Tao Board Settings</string>
     <!-- Title for the spell checking service settings screen. The app name should not be translated. -->
-    <string name="android_spell_checker_settings">HeliBoard Spell Checker Settings</string>
+    <string name="android_spell_checker_settings">Hu Tao Board Spell Checker Settings</string>
     <!-- Option to provide vibrate/haptic feedback on keypress -->
     <string name="vibrate_on_keypress">Vibrate on keypress</string>
     <!-- Option to provide vibrate/haptic feedback on keypress even in do not disturb mode -->
@@ -730,6 +730,7 @@ New dictionary:
     <string name="theme_name_brown" tools:keep="@string/theme_name_brown">Brown</string>
     <!-- Theme name for chocolate theme -->
     <string name="theme_name_chocolate" tools:keep="@string/theme_name_chocolate">Chocolate</string>
+    <string name="theme_name_hu_tao" tools:keep="@string/theme_name_hu_tao">Hu Tao</string>
     <!-- Theme name for cloudy theme -->
     <string name="theme_name_cloudy" tools:keep="@string/theme_name_cloudy">Cloudy</string>
     <!-- Theme name for forest theme -->

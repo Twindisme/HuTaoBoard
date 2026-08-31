@@ -2,10 +2,11 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:orientation="horizontal"
-    android:background="@drawable/clipboard_suggestion_background"
-    android:gravity="center"
-    android:paddingEnd="12dp"
-    android:layout_width="wrap_content"
+    android:background="@drawable/hu_tao_clipboard_suggestion_background"
+    android:gravity="center_vertical"
+    android:paddingStart="11dp"
+    android:paddingEnd="8dp"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:ignore="RtlSymmetry">
     <TextView
@@ -13,31 +14,38 @@
         android:layout_width="0dp"
         android:layout_weight="1"
         android:layout_height="match_parent"
-        android:drawablePadding="3dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="6dp"
+        android:drawablePadding="8dp"
+        android:paddingStart="5dp"
+        android:paddingEnd="8dp"
         android:hapticFeedbackEnabled="false"
         android:soundEffectsEnabled="false"
         android:singleLine="true"
-        android:gravity="center"
+        android:gravity="center_vertical"
         android:ellipsize="end"
-        android:textStyle="bold"
+        android:textColor="#FFF0DB"
+        android:textSize="15sp"
         style="?android:attr/textAppearanceSmall" />
     <ImageView
         android:id="@+id/clipboard_suggestion_image"
         android:adjustViewBounds="true"
-        android:paddingVertical="6dp"
-        android:paddingEnd="6dp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:contentDescription="@string/spoken_clipboard_suggestion"
+        android:paddingVertical="10dp"
+        android:paddingEnd="8dp"
+        android:layout_width="40dp"
+        android:layout_height="match_parent"
         android:visibility="gone"
         android:scaleType="centerInside" />
+    <View
+        android:layout_width="1dp"
+        android:layout_height="22dp"
+        android:layout_marginHorizontal="2dp"
+        android:background="#55D5AA76" />
     <ImageView
         android:id="@+id/clipboard_suggestion_close"
-        android:contentDescription="@string/spoken_clipboard_suggestion"
-        android:src="@drawable/ic_close"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center" />
+        android:contentDescription="@string/close_history"
+        android:layout_width="38dp"
+        android:layout_height="match_parent"
+        android:padding="8dp"
+        android:scaleType="centerInside" />
 
 </LinearLayout>

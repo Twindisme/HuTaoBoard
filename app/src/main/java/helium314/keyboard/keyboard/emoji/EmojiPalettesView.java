@@ -13,12 +13,14 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.graphics.Color;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
@@ -237,14 +239,15 @@ public final class EmojiPalettesView extends LinearLayout
 
     private void addTab(LinearLayout host, EmojiCategory.Category category) {
         final ImageView iconView = new ImageView(getContext());
-        mColors.setBackground(iconView, ColorType.STRIP_BACKGROUND);
+        iconView.setBackgroundColor(Color.TRANSPARENT);
         mColors.setColor(iconView, ColorType.EMOJI_CATEGORY);
         iconView.setScaleType(ImageView.ScaleType.CENTER);
         iconView.setImageResource(mEmojiCategory.getCategoryTabIcon(category));
         iconView.setContentDescription(mEmojiCategory.getAccessibilityDescription(category));
         iconView.setTag(category);
-        host.addView(iconView);
+        host.addView(iconView, host.getChildCount() - 1);
         iconView.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+        iconView.setTranslationY(-3.0f * getResources().getDisplayMetrics().density);
         iconView.setOnClickListener(this);
     }
 
@@ -253,6 +256,20 @@ public final class EmojiPalettesView extends LinearLayout
         if (initialized) return;
         mEmojiCategory.initialize();
         mTabStrip = (LinearLayout) KeyboardSwitcher.getInstance().getEmojiTabStrip();
+        final ImageButton backpackKey = mTabStrip.findViewById(R.id.emoji_toolbar_backpack_key);
+        backpackKey.setOnClickListener(view -> {
+            AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(
+                    KeyCode.NOT_SPECIFIED, this, HapticEvent.KEY_PRESS);
+            mKeyboardActionListener.onCodeInput(
+                    KeyCode.CLIPBOARD, NOT_A_COORDINATE, NOT_A_COORDINATE, false);
+        });
+        final ImageButton returnKey = mTabStrip.findViewById(R.id.emoji_toolbar_return_key);
+        returnKey.setOnClickListener(view -> {
+            AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(
+                    KeyCode.NOT_SPECIFIED, this, HapticEvent.KEY_PRESS);
+            mKeyboardActionListener.onCodeInput(
+                    KeyCode.ALPHA, NOT_A_COORDINATE, NOT_A_COORDINATE, false);
+        });
         if (Settings.getValues().mSecondaryStripVisible) {
             for (EmojiCategory.CategoryProperties properties : mEmojiCategory.getShownCategories()) {
                 addTab(mTabStrip, properties.getCategory());

@@ -18,6 +18,8 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Paint.Align;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
+import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
@@ -35,6 +37,8 @@ import helium314.keyboard.keyboard.internal.DrawingPreviewPlacerView;
 import helium314.keyboard.keyboard.internal.DrawingProxy;
 import helium314.keyboard.keyboard.internal.GestureFloatingTextDrawingPreview;
 import helium314.keyboard.keyboard.internal.GestureTrailsDrawingPreview;
+import helium314.keyboard.keyboard.internal.HuTaoButterflyAnimator;
+import helium314.keyboard.keyboard.internal.HuTaoKeyBackgroundRenderer;
 import helium314.keyboard.keyboard.internal.KeyDrawParams;
 import helium314.keyboard.keyboard.internal.KeyPreviewChoreographer;
 import helium314.keyboard.keyboard.internal.KeyPreviewDrawParams;
@@ -109,6 +113,8 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     private final Paint mBackgroundDimAlphaPaint = new Paint(); // todo: not used at all
     private final View mPopupKeysKeyboardContainer;
     private final View mPopupKeysKeyboardForActionContainer;
+    @Nullable
+    private Key mSinglePopupPreviewKey;
     private final WeakHashMap<Key, Keyboard> mPopupKeysKeyboardCache = new WeakHashMap<>();
     private final boolean mConfigShowPopupKeysKeyboardAtTouchedPoint;
     // More keys panel (used by both popup keys keyboard and more suggestions view)
@@ -125,6 +131,8 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     private final int mLanguageOnSpacebarHorizontalMargin;
 
     private MainKeyboardAccessibilityDelegate mAccessibilityDelegate;
+    private final HuTaoButterflyAnimator mHuTaoButterflyAnimator;
+    private final HuTaoKeyBackgroundRenderer mHuTaoKeyBackgroundRenderer;
 
     public MainKeyboardView(final Context context, final AttributeSet attrs) {
         this(context, attrs, R.attr.mainKeyboardViewStyle);
@@ -132,6 +140,8 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
 
     public MainKeyboardView(final Context context, final AttributeSet attrs, final int defStyle) {
         super(context, attrs, defStyle);
+        mHuTaoButterflyAnimator = new HuTaoButterflyAnimator(context);
+        mHuTaoKeyBackgroundRenderer = new HuTaoKeyBackgroundRenderer(context);
 
         final DrawingPreviewPlacerView drawingPreviewPlacerView =
                 new DrawingPreviewPlacerView(new ContextThemeWrapper(context, R.style.platformActivityTheme), attrs);
@@ -361,6 +371,8 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     public void onKeyPressed(@NonNull final Key key, final boolean withPreview) {
         key.onPressed();
         invalidateKey(key);
+        mHuTaoButterflyAnimator.start(key, getPaddingLeft(), getPaddingTop());
+        postInvalidateOnAnimation();
 
         final Keyboard keyboard = getKeyboard();
         if (keyboard == null) {
@@ -473,7 +485,16 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+        mHuTaoButterflyAnimator.clear();
         mDrawingPreviewPlacerView.removeAllViews();
+    }
+
+    @Override
+    protected void onDraw(@NonNull final Canvas canvas) {
+        super.onDraw(canvas);
+        if (mHuTaoButterflyAnimator.draw(canvas, SystemClock.uptimeMillis())) {
+            postInvalidateOnAnimation();
+        }
     }
 
     // Implements {@link DrawingProxy@showPopupKeysKeyboard(Key,PointerTracker)}.
@@ -485,6 +506,9 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         if (popupKeys == null) {
             return null;
         }
+        final boolean isSinglePopupKeyWithPreview = mKeyPreviewDrawParams.isPopupEnabled()
+                && key.hasPreview() && popupKeys.length == 1
+                && mKeyPreviewDrawParams.getVisibleWidth() > 0;
         Keyboard popupKeysKeyboard = mPopupKeysKeyboardCache.get(key);
         if (popupKeysKeyboard == null) {
             // {@link KeyPreviewDrawParams#mPreviewVisibleWidth} should have been set at
@@ -492,9 +516,6 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             // though there may be some chances that the value is zero. <code>width == 0</code>
             // will cause zero-division error at
             // {@link PopupKeysKeyboardParams#setParameters(int,int,int,int,int,int,boolean,int)}.
-            final boolean isSinglePopupKeyWithPreview = mKeyPreviewDrawParams.isPopupEnabled()
-                    && key.hasPreview() && popupKeys.length == 1
-                    && mKeyPreviewDrawParams.getVisibleWidth() > 0;
             final PopupKeysKeyboard.Builder builder = new PopupKeysKeyboard.Builder(
                     getContext(), key, getKeyboard(), isSinglePopupKeyWithPreview,
                     mKeyPreviewDrawParams.getVisibleWidth(),
@@ -508,6 +529,8 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         final PopupKeysKeyboardView popupKeysKeyboardView =
                 container.findViewById(R.id.popup_keys_keyboard_view);
         popupKeysKeyboardView.setKeyboard(popupKeysKeyboard);
+        popupKeysKeyboardView.setVisibility(
+                isSinglePopupKeyWithPreview ? View.INVISIBLE : View.VISIBLE);
         container.measure(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
         final int[] lastCoords = CoordinateUtils.newInstance();
@@ -526,6 +549,15 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         // {@link KeyboardView#showKeyPreview(PointerTracker)}.
         final int pointY = key.getY() + mKeyPreviewDrawParams.getVisibleOffset();
         popupKeysKeyboardView.showPopupKeysPanel(this, this, pointX, pointY, mKeyboardActionListener);
+        if (isSinglePopupKeyWithPreview) {
+            locatePreviewPlacerView();
+            getLocationInWindow(mOriginCoords);
+            mKeyPreviewChoreographer.placeAndShowSinglePopupKeyPreview(
+                    key, popupKeys[0], getKeyboard().mIconsSet, getKeyDrawParams(),
+                    KeyboardSwitcher.getInstance().getWrapperView().getWidth(), mOriginCoords,
+                    mDrawingPreviewPlacerView);
+            mSinglePopupPreviewKey = key;
+        }
         return popupKeysKeyboardView;
     }
 
@@ -560,6 +592,10 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
 
     @Override
     public void onDismissPopupKeysPanel() {
+        if (mSinglePopupPreviewKey != null) {
+            mKeyPreviewChoreographer.dismissKeyPreview(mSinglePopupPreviewKey);
+            mSinglePopupPreviewKey = null;
+        }
         if (isShowingPopupKeysPanel()) {
             mPopupKeysPanel.removeFromParent();
             mPopupKeysPanel = null;
@@ -702,8 +738,17 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     }
 
     @Override
+    protected void onDrawKeyBackground(@NonNull final Key key, @NonNull final Canvas canvas,
+            @NonNull final Drawable background) {
+        mHuTaoKeyBackgroundRenderer.draw(key, canvas);
+    }
+
+    @Override
     protected void onDrawKeyTopVisuals(@NonNull final Key key, @NonNull final Canvas canvas,
             @NonNull final Paint paint, @NonNull final KeyDrawParams params) {
+        if (mHuTaoKeyBackgroundRenderer.drawTopVisual(key, canvas)) {
+            return;
+        }
         if (key.altCodeWhileTyping() && key.isEnabled()) {
             params.mAnimAlpha = Constants.Color.ALPHA_OPAQUE;
         }
@@ -721,6 +766,12 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         } else if (code == KeyCode.LANGUAGE_SWITCH) {
             drawKeyPopupHint(key, canvas, paint, params);
         }
+    }
+
+    @Override
+    protected void drawIcon(@NonNull final Canvas canvas, @NonNull final Drawable icon,
+            final int x, final int y, final int width, final int height) {
+        mHuTaoKeyBackgroundRenderer.drawGradientIcon(canvas, icon, x, y, width, height);
     }
 
     private boolean fitsTextIntoWidth(final int width, final String text, final Paint paint) {

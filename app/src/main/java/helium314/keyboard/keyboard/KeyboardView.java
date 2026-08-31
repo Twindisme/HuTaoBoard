@@ -577,7 +577,7 @@ public class KeyboardView extends View {
         canvas.drawText(mKeyPopupHintLetter, hintX, hintY, paint);
     }
 
-    protected static void drawIcon(@NonNull final Canvas canvas,@NonNull final Drawable icon,
+    protected void drawIcon(@NonNull final Canvas canvas, @NonNull final Drawable icon,
             final int x, final int y, final int width, final int height) {
         canvas.translate(x, y);
         icon.setBounds(0, 0, width, height);

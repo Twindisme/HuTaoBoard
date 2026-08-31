@@ -58,6 +58,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         const val THEME_BLUE_GRAY = "blue_gray"
         const val THEME_BROWN = "brown"
         const val THEME_CHOCOLATE = "chocolate"
+        const val THEME_HU_TAO = "hu_tao"
         const val THEME_CLOUDY = "cloudy"
         const val THEME_FOREST = "forest"
         const val THEME_INDIGO = "indigo"
@@ -66,6 +67,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         const val THEME_SAND = "sand"
         const val THEME_VIOLETTE = "violette"
         fun getAvailableDefaultColors(prefs: SharedPreferences, isNight: Boolean) = listOfNotNull(
+            THEME_HU_TAO,
             if (!isNight) THEME_LIGHT else null, THEME_DARK,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) THEME_DYNAMIC else null,
             if (prefs.getString(Settings.PREF_THEME_STYLE, Defaults.PREF_THEME_STYLE) == STYLE_HOLO) THEME_HOLO_WHITE else null,
@@ -249,6 +251,22 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                     Color.WHITE,
                     Color.WHITE,
                     keyboardBackground = backgroundImage
+                )
+                THEME_HU_TAO -> DefaultColors(
+                    themeStyle,
+                    hasBorders,
+                    "#CD563C".toColorInt(),
+                    "#48231F".toColorInt(),
+                    "#4B302C".toColorInt(),
+                    "#331E22".toColorInt(),
+                    "#692D2B".toColorInt(),
+                    "#FDECD2".toColorInt(),
+                    "#D3B9A0".toColorInt(),
+                    "#FDECD2".toColorInt(),
+                    "#FDECD2".toColorInt(),
+                    "#CD563C".toColorInt(),
+                    keyboardBackground = backgroundImage
+                        ?: ContextCompat.getDrawable(context, R.drawable.hu_tao_keyboard_background)
                 )
                 THEME_CLOUDY -> DefaultColors(
                     themeStyle,

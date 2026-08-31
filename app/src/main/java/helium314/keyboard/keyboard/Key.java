@@ -850,6 +850,10 @@ public class Key implements Comparable<Key> {
         mPressed = false;
     }
 
+    public final boolean isPressedOrLocked() {
+        return mPressed || mLocked;
+    }
+
     public final boolean isEnabled() {
         return mEnabled;
     }

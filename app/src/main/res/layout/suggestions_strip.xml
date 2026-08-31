@@ -17,21 +17,29 @@
         android:soundEffectsEnabled="false">
         <!-- Provide audio and haptic feedback by ourselves based on the keyboard settings.
              We just need to ignore the system's audio and haptic feedback settings. -->
-        <ImageButton
-            android:id="@+id/suggestions_strip_toolbar_key"
-            android:layout_width="@dimen/config_suggestions_strip_edge_key_width"
-            android:layout_height="@dimen/config_suggestions_strip_edge_key_width"
-            android:layout_gravity="center_vertical"
-            android:layout_weight="0"
-            android:layout_marginStart="1dp"
-            android:background="@drawable/toolbar_expand_key_background"
-            style="?attr/suggestionWordStyle"
-            android:contentDescription="@string/more_keys_strip_description" />
+        <FrameLayout
+            android:layout_width="61dp"
+            android:layout_height="match_parent"
+            android:translationY="-3dp">
+            <ImageButton
+                android:id="@+id/hu_tao_toolbar_backpack_key"
+                android:layout_width="48dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/clipboard"
+                android:padding="0dp"
+                android:scaleType="fitCenter"
+                style="?attr/suggestionWordStyle" />
+        </FrameLayout>
         <HorizontalScrollView
             android:id="@+id/toolbar_container"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:scrollbarThumbHorizontal="@color/toolbar_scrollbar"
+            android:layout_weight="1"
+            android:fillViewport="true"
+            android:scrollbars="none"
+            android:translationY="-3dp"
             android:visibility="gone">
             <LinearLayout
                 android:id="@+id/toolbar"
@@ -48,20 +56,47 @@
         <LinearLayout
             android:id="@+id/suggestions_strip"
             android:orientation="horizontal"
-            android:maxWidth="100dp"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center_horizontal"
             android:hapticFeedbackEnabled="false"
-            android:soundEffectsEnabled="false" />
+            android:soundEffectsEnabled="false"
+            android:translationY="-3dp" />
         <LinearLayout
             android:id="@+id/pinned_keys"
             android:orientation="horizontal"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:minWidth="0dp"
+            android:padding="0dp"
+            android:translationY="-3dp"
             style="?attr/suggestionWordStyle">
         </LinearLayout>
+        <FrameLayout
+            android:layout_width="61dp"
+            android:layout_height="match_parent">
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null"
+                android:importantForAccessibility="no"
+                android:scaleY="1.1"
+                android:scaleType="fitCenter"
+                android:src="@drawable/hu_tao_toolbar_flourish"
+                android:translationX="-4dp"
+                android:translationY="-3.13dp"
+                android:transformPivotY="0dp" />
+            <ImageButton
+                android:id="@+id/suggestions_strip_toolbar_key"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/more_keys_strip_description"
+                android:padding="0dp"
+                android:scaleType="center"
+                android:translationY="-3dp"
+                style="?attr/suggestionWordStyle" />
+        </FrameLayout>
     </LinearLayout>
 </merge>

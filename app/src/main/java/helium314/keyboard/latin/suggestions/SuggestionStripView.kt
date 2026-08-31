@@ -24,10 +24,13 @@ import android.view.View.OnLongClickListener
 import android.view.ViewGroup
 import android.view.accessibility.AccessibilityEvent
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.doOnNextLayout
+import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.KeyboardSwitcher
@@ -53,7 +56,6 @@ import helium314.keyboard.latin.utils.createToolbarKey
 import helium314.keyboard.latin.utils.dpToPx
 import helium314.keyboard.latin.utils.getCodeForToolbarKey
 import helium314.keyboard.latin.utils.getCodeForToolbarKeyLongClick
-import helium314.keyboard.latin.utils.getEnabledToolbarKeys
 import helium314.keyboard.latin.utils.getPinnedToolbarKeys
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.removeFirst
@@ -61,8 +63,6 @@ import helium314.keyboard.latin.utils.removePinnedKey
 import helium314.keyboard.latin.utils.setToolbarButtonsActivatedStateOnPrefChange
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
-import kotlin.math.min
-import androidx.core.view.isGone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -95,13 +95,13 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         moreSuggestionsContainer = inflater.inflate(R.layout.more_suggestions, null)
 
         val colors = Settings.getValues().mColors
-        colors.setBackground(this, ColorType.STRIP_BACKGROUND)
+        setBackgroundResource(R.drawable.hu_tao_toolbar_background)
         repeat(SuggestedWords.MAX_SUGGESTIONS) {
             val word = TextView(context, null, R.attr.suggestionWordStyle)
             word.contentDescription = resources.getString(R.string.spoken_empty_suggestion)
             word.setOnClickListener(this)
             word.setOnLongClickListener(this)
-            colors.setBackground(word, ColorType.STRIP_BACKGROUND)
+            word.setBackgroundColor(Color.TRANSPARENT)
             wordViews.add(word)
             val divider = inflater.inflate(R.layout.suggestion_divider, null)
             dividerViews.add(divider)
@@ -119,30 +119,23 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private val toolbarContainer: View = findViewById(R.id.toolbar_container)
     private val pinnedKeys: ViewGroup = findViewById(R.id.pinned_keys)
     private val suggestionsStrip: ViewGroup = findViewById(R.id.suggestions_strip)
+    private val backpackKey = findViewById<ImageButton>(R.id.hu_tao_toolbar_backpack_key)
     private val toolbarExpandKey = findViewById<ImageButton>(R.id.suggestions_strip_toolbar_key)
-    private val incognitoIcon = KeyboardIconsSet.instance.getNewDrawable(ToolbarKey.INCOGNITO.name, context)
-    private val toolbarArrowIcon = KeyboardIconsSet.instance.getNewDrawable(KeyboardIconsSet.NAME_TOOLBAR_KEY, context)
-    private val defaultToolbarBackground: Drawable = toolbarExpandKey.background
+    private val huTaoSearchTag = Any()
+    private val defaultToolbarBackground: Drawable = Color.TRANSPARENT.toDrawable()
     private val enabledToolKeyBackground = GradientDrawable()
     private var direction = 1 // 1 if LTR, -1 if RTL
 
     private val toolbarKeyLayoutParams = LinearLayout.LayoutParams(
-        resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_edge_key_width),
+        56.dpToPx(resources),
         LinearLayout.LayoutParams.MATCH_PARENT
     )
 
     init {
         val colors = Settings.getValues().mColors
 
-        // expand key
-        // weird way of setting size (default is config_suggestions_strip_edge_key_width)
-        // but better not change it or people will complain
-        val toolbarHeight = min(toolbarExpandKey.layoutParams.height, resources.getDimension(R.dimen.config_suggestions_strip_height).toInt())
-        toolbarExpandKey.layoutParams.height = toolbarHeight
-        toolbarExpandKey.layoutParams.width = toolbarHeight // we want it square
-        colors.setBackground(toolbarExpandKey, ColorType.STRIP_BACKGROUND) // necessary because background is re-used for defaultToolbarBackground
-        colors.setColor(toolbarExpandKey, ColorType.TOOL_BAR_EXPAND_KEY)
-        colors.setColor(toolbarExpandKey.background, ColorType.TOOL_BAR_EXPAND_KEY_BACKGROUND)
+        backpackKey.setBackgroundColor(Color.TRANSPARENT)
+        toolbarExpandKey.setBackgroundColor(Color.TRANSPARENT)
 
         // background indicator for pinned keys
         val color = colors.get(ColorType.TOOL_BAR_KEY_ENABLED_BACKGROUND) or -0x1000000 // ignore alpha (in Java this is more readable 0xFF000000)
@@ -151,13 +144,18 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         enabledToolKeyBackground.gradientRadius = resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_height) / 2.1f
 
         val mToolbarMode = if (isGone) ToolbarMode.HIDDEN else Settings.getValues().mToolbarMode
-        if (mToolbarMode == ToolbarMode.TOOLBAR_KEYS) {
+        if (mToolbarMode == ToolbarMode.TOOLBAR_KEYS || mToolbarMode == ToolbarMode.EXPANDABLE) {
             setToolbarVisibility(true)
         }
 
-        // toolbar keys setup (no need to hide them any more when locked, because then suggestion strip is gone anyway
-        for (key in getEnabledToolbarKeys(context.prefs())) {
-            val button = createToolbarKey(context, key)
+        // The original bar has four fixed actions between its backpack and flower flourish.
+        val huTaoToolbarButtons = listOf(
+            createHuTaoToolbarKey(ToolbarKey.SETTINGS, R.drawable.hu_tao_toolbar_keyboard),
+            createHuTaoToolbarKey(ToolbarKey.SELECT_WORD, R.drawable.hu_tao_toolbar_cursor),
+            createHuTaoSearchKey(),
+            createHuTaoToolbarKey(ToolbarKey.EMOJI, R.drawable.hu_tao_toolbar_emoji),
+        )
+        for (button in huTaoToolbarButtons) {
             button.layoutParams = toolbarKeyLayoutParams
             setupKey(button, colors)
             toolbar.addView(button)
@@ -222,7 +220,6 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         else {
             newLayoutDirection = if (isRtlLanguage) LAYOUT_DIRECTION_RTL else LAYOUT_DIRECTION_LTR
             direction = if (isRtlLanguage) -1 else 1
-            toolbarExpandKey.scaleX = (if (toolbarContainer.visibility != VISIBLE) 1f else -1f) * direction
         }
         layoutDirection = newLayoutDirection
         suggestionsStrip.layoutDirection = newLayoutDirection
@@ -239,7 +236,6 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             }
         }
 
-        toolbarExpandKey.scaleX = (if (toolbarVisible) -1f else 1f) * direction
     }
 
     fun setSuggestions(suggestions: SuggestedWords, isRtlLanguage: Boolean) {
@@ -299,8 +295,9 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     override fun onVisibilityChanged(view: View, visibility: Int) {
         super.onVisibilityChanged(view, visibility)
         // workaround for a bug with inline suggestions views that just keep showing up otherwise, https://github.com/HeliBorg/HeliBoard/pull/386
-        if (view === this)
-            suggestionsStrip.visibility = visibility
+        if (view === this) {
+            suggestionsStrip.visibility = if (toolbarContainer.isVisible) GONE else visibility
+        }
     }
 
     override fun onDetachedFromWindow() {
@@ -332,6 +329,10 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     override fun onClick(view: View) {
         AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, this, HapticEvent.KEY_PRESS)
         val tag = view.tag
+        if (tag === huTaoSearchTag) {
+            listener.onCodeInput(Constants.CODE_ENTER, Constants.SUGGESTION_STRIP_COORDINATE, Constants.SUGGESTION_STRIP_COORDINATE, false)
+            return
+        }
         if (tag is ToolbarKey) {
             val code = getCodeForToolbarKey(tag)
             if (code != KeyCode.UNSPECIFIED) {
@@ -356,6 +357,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
 
     override fun onLongClick(view: View): Boolean {
         AudioAndHapticFeedbackManager.getInstance().performHapticFeedback(this, HapticEvent.KEY_LONG_PRESS)
+        if (view.tag === huTaoSearchTag) return true
         if (view.tag is ToolbarKey) {
             onLongClickToolbarKey(view)
             return true
@@ -518,13 +520,13 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val settingsValues = Settings.getValues()
 
         val toolbarIsExpandable = settingsValues.mToolbarMode == ToolbarMode.EXPANDABLE
-        if (settingsValues.mIncognitoModeEnabled) {
-            toolbarExpandKey.setImageDrawable(incognitoIcon)
-            toolbarExpandKey.isVisible = true
-        } else {
-            toolbarExpandKey.setImageDrawable(toolbarArrowIcon)
-            toolbarExpandKey.isVisible = toolbarIsExpandable
-        }
+        backpackKey.setImageResource(R.drawable.hu_tao_toolbar_backpack_state)
+        backpackKey.clearColorFilter()
+        backpackKey.tag = ToolbarKey.CLIPBOARD
+        backpackKey.setOnClickListener(this)
+
+        toolbarExpandKey.clearColorFilter()
+        toolbarExpandKey.isVisible = toolbarIsExpandable
 
         toolbarExpandKey.setOnClickListener(if (!toolbarIsExpandable) null else this)
         pinnedKeys.visibility = suggestionsStrip.visibility
@@ -552,7 +554,17 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         view.setOnLongClickListener(this)
         (view.layoutParams as LinearLayout.LayoutParams).weight = 1f
         colors.setColor(view, ColorType.TOOL_BAR_KEY)
-        colors.setBackground(view, ColorType.STRIP_BACKGROUND)
+        view.setBackgroundColor(Color.TRANSPARENT)
+    }
+
+    private fun createHuTaoToolbarKey(key: ToolbarKey, icon: Int): ImageButton =
+        createToolbarKey(context, key).apply { setImageResource(icon) }
+
+    private fun createHuTaoSearchKey() = ImageButton(context, null, R.attr.suggestionWordStyle).apply {
+        scaleType = ImageView.ScaleType.CENTER
+        tag = huTaoSearchTag
+        contentDescription = resources.getString(R.string.label_search_key)
+        setImageResource(R.drawable.hu_tao_toolbar_search)
     }
 
     companion object {

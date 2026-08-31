@@ -21,9 +21,7 @@ import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.compat.ClipboardManagerCompat
 import helium314.keyboard.event.Event
 import helium314.keyboard.event.HapticEvent
-import helium314.keyboard.keyboard.internal.KeyboardIconsSet
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
-import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.isValidNumber
 import helium314.keyboard.latin.database.ClipboardDao
@@ -32,7 +30,6 @@ import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.InputTypeUtils
 import helium314.keyboard.latin.utils.Log
-import helium314.keyboard.latin.utils.ToolbarKey
 import helium314.keyboard.latin.utils.prefs
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -190,8 +187,7 @@ class ClipboardHistoryManager(
         // create the view
         val binding = ClipboardSuggestionBinding.inflate(LayoutInflater.from(latinIME), parent, false)
         val textView = binding.clipboardSuggestionText
-        val clipIcon = KeyboardIconsSet.instance.getIconDrawable(ToolbarKey.PASTE.name.lowercase())
-        textView.setCompoundDrawablesRelativeWithIntrinsicBounds(clipIcon, null, null, null)
+        textView.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.hu_tao_clipboard_paste, 0, 0, 0)
         val inputType = editorInfo?.inputType ?: InputType.TYPE_NULL
         if (hasText) {
             if (TextUtils.isEmpty(content)) return null
@@ -207,7 +203,7 @@ class ClipboardHistoryManager(
             AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, it, HapticEvent.KEY_PRESS)
             binding.root.isGone = true
         }
-        textView.setOnClickListener(onClickListener)
+        binding.root.setOnClickListener(onClickListener)
 
         if (hasImage) {
             if (InputTypeUtils.isNumberInputType(inputType)) return null
@@ -219,18 +215,11 @@ class ClipboardHistoryManager(
                 Log.w(TAG, "error setting clipboard image", e) // happens with SecurityException: Permission Denial
                 return null
             }
-            imageView.setOnClickListener(onClickListener)
         }
 
         val closeButton = binding.clipboardSuggestionClose
-        closeButton.setImageDrawable(KeyboardIconsSet.instance.getIconDrawable(ToolbarKey.CLOSE_HISTORY.name.lowercase()))
+        closeButton.setImageResource(R.drawable.hu_tao_clipboard_close)
         closeButton.setOnClickListener { removeClipboardSuggestion() }
-
-        val colors = latinIME.mSettings.current.mColors
-        textView.setTextColor(colors.get(ColorType.KEY_TEXT))
-        clipIcon?.let { colors.setColor(it, ColorType.KEY_ICON) }
-        colors.setColor(closeButton, ColorType.REMOVE_SUGGESTION_ICON)
-        colors.setBackground(binding.root, ColorType.CLIPBOARD_SUGGESTION_BACKGROUND)
 
         clipboardSuggestionView = binding.root
         return clipboardSuggestionView

@@ -8,15 +8,34 @@ plugins {
     kotlin("plugin.compose") version "2.3.20"
 }
 
+val huTaoKeystorePath = providers.environmentVariable("HU_TAO_KEYSTORE_PATH")
+val huTaoKeystorePassword = providers.environmentVariable("HU_TAO_KEYSTORE_PASSWORD")
+val huTaoKeyAlias = providers.environmentVariable("HU_TAO_KEY_ALIAS")
+val huTaoKeyPassword = providers.environmentVariable("HU_TAO_KEY_PASSWORD")
+
 android {
     compileSdk = 36
 
+    signingConfigs {
+        huTaoKeystorePath.orNull?.let { keystorePath ->
+            create("huTaoRelease") {
+                storeFile = file(keystorePath)
+                storePassword = huTaoKeystorePassword.orNull
+                    ?: error("HU_TAO_KEYSTORE_PASSWORD is required when release signing is enabled")
+                keyAlias = huTaoKeyAlias.orNull
+                    ?: error("HU_TAO_KEY_ALIAS is required when release signing is enabled")
+                keyPassword = huTaoKeyPassword.orNull
+                    ?: error("HU_TAO_KEY_PASSWORD is required when release signing is enabled")
+            }
+        }
+    }
+
     defaultConfig {
-        applicationId = "helium314.keyboard"
+        applicationId = "helium314.keyboard.hutao"
         minSdk = 21
         targetSdk = 36
-        versionCode = 4005
-        versionName = "4.0"
+        versionCode = 400504
+        versionName = "4.0-hutao.4"
         ndk {
             abiFilters.clear()
             abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
@@ -30,6 +49,7 @@ android {
             isShrinkResources = false
             isDebuggable = false
             isJniDebuggable = false
+            signingConfig = signingConfigs.findByName("huTaoRelease")
         }
         create("nouserlib") { // same as release, but does not allow the user to provide a library
             isMinifyEnabled = true
@@ -55,6 +75,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
         }
+        create("personal") {
+            isDebuggable = false
+            isMinifyEnabled = false
+            isJniDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
+        }
 
         androidComponents.onVariants { variant: ApplicationVariant ->
             if (variant.buildType == "debug") {
@@ -67,7 +93,7 @@ android {
             }
             variant.outputs.forEach { output ->
                 if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
-                    output.outputFileName = "HeliBoard_${defaultConfig.versionName}-${variant.buildType}.apk"
+                    output.outputFileName = "HuTaoBoard_${defaultConfig.versionName}-${variant.buildType}.apk"
                 }
             }
         }

@@ -53,11 +53,27 @@ public class KeyPreviewView extends TextView {
 
         setCompoundDrawables(null, null, null, null);
         setTextColor(drawParams.mPreviewTextColor);
-        setTextSize(TypedValue.COMPLEX_UNIT_PX, key.selectPreviewTextSize(drawParams)
+        setTextSize(TypedValue.COMPLEX_UNIT_PX, key.selectTextSize(drawParams)
                 * Settings.getValues().mFontSizeMultiplier);
         KeyboardTypeface.applyToTextView(this, key.getPreviewLabel(), key.selectPreviewTypeface(drawParams));
         // TODO Should take care of temporaryShiftLabel here.
         setTextAndScaleX(key.getPreviewLabel());
+    }
+
+    public void setPreviewVisual(final PopupKeySpec popupKey, final Key parentKey,
+            final KeyboardIconsSet iconsSet, final KeyDrawParams drawParams) {
+        if (popupKey.mIconName != null) {
+            setCompoundDrawables(iconsSet.getIconDrawable(popupKey.mIconName), null, null, null);
+            setText(null);
+            return;
+        }
+
+        setCompoundDrawables(null, null, null, null);
+        setTextSize(TypedValue.COMPLEX_UNIT_PX, parentKey.selectTextSize(drawParams)
+                * Settings.getValues().mFontSizeMultiplier);
+        KeyboardTypeface.applyToTextView(
+                this, popupKey.mLabel, parentKey.selectPreviewTypeface(drawParams));
+        setTextAndScaleX(popupKey.mLabel);
     }
 
     private void setTextAndScaleX(final String text) {
