@@ -51,8 +51,23 @@ jobs:
           APK="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "$APK"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           sha256sum "$APK" > "$APK.sha256"
+          BADGING="$("$AAPT" dump badging "$APK" | head -n 1)"
+          VERSION_CODE="$(printf '%s' "$BADGING" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")"
+          VERSION_NAME="$(printf '%s' "$BADGING" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")"
+          APK_NAME="$(basename "$APK")"
+          APK_SHA256="$(sha256sum "$APK" | cut -d ' ' -f 1)"
+          test -n "$VERSION_CODE"
+          test -n "$VERSION_NAME"
+          jq -n \
+            --argjson versionCode "$VERSION_CODE" \
+            --arg versionName "$VERSION_NAME" \
+            --arg apkUrl "https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/$APK_NAME" \
+            --arg sha256 "$APK_SHA256" \
+            '{versionCode: $versionCode, versionName: $versionName, apkUrl: $apkUrl, sha256: $sha256}' \
+            > update.json
           echo "path=$APK" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub release
@@ -62,9 +77,9 @@ jobs:
         run: |
           set -eu
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" "$APK" "$APK.sha256" --clobber
+            gh release upload "$GITHUB_REF_NAME" "$APK" "$APK.sha256" update.json --clobber
           else
-            gh release create "$GITHUB_REF_NAME" "$APK" "$APK.sha256" \
+            gh release create "$GITHUB_REF_NAME" "$APK" "$APK.sha256" update.json \
               --verify-tag \
               --generate-notes \
               --title "Hu Tao Board ${GITHUB_REF_NAME#v}"
