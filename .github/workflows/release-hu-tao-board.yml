@@ -12,7 +12,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      HU_TAO_KEYSTORE_PATH: ${{ runner.temp }}/hu-tao-board-release.jks
+      HU_TAO_KEYSTORE_PATH: ${{ github.workspace }}/.hu-tao-board-release.jks
       HU_TAO_KEYSTORE_PASSWORD: ${{ secrets.HU_TAO_KEYSTORE_PASSWORD }}
       HU_TAO_KEY_ALIAS: ${{ secrets.HU_TAO_KEY_ALIAS }}
       HU_TAO_KEY_PASSWORD: ${{ secrets.HU_TAO_KEY_PASSWORD }}
