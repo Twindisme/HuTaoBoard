@@ -76,10 +76,11 @@ jobs:
           APK: ${{ steps.apk.outputs.path }}
         run: |
           set -eu
+          cp "$APK" HuTaoBoard-latest.apk
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" "$APK" "$APK.sha256" update.json --clobber
+            gh release upload "$GITHUB_REF_NAME" "$APK" "$APK.sha256" HuTaoBoard-latest.apk update.json --clobber
           else
-            gh release create "$GITHUB_REF_NAME" "$APK" "$APK.sha256" update.json \
+            gh release create "$GITHUB_REF_NAME" "$APK" "$APK.sha256" HuTaoBoard-latest.apk update.json \
               --verify-tag \
               --generate-notes \
               --title "Hu Tao Board ${GITHUB_REF_NAME#v}"

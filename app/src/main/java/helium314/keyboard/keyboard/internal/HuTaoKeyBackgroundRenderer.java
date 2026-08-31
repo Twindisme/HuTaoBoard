@@ -155,9 +155,9 @@ public final class HuTaoKeyBackgroundRenderer {
             drawAspectFit(pressed ? mPressedShift : mNormalShift, canvas, width, height);
         } else if (code == KeyCode.DELETE) {
             drawAspectFit(pressed ? mPressedDelete : mNormalDelete, canvas, width, height);
-        } else if (hasOriginalEnterArtwork(key)) {
+        } else if (key.hasActionKeyBackground()) {
             drawAspectFit(pressed ? mPressedEnter : mNormalEnter, canvas, width, height);
-        } else if (key.hasActionKeyBackground() || isRoundFunction(code)) {
+        } else if (isRoundFunction(code)) {
             drawAspectFit(pressed ? mPressedRoundFunction : mNormalRoundFunction,
                     canvas, width, height);
         } else if (isDiamondFunction(code)) {
@@ -180,7 +180,7 @@ public final class HuTaoKeyBackgroundRenderer {
             drawSquareGradientIcon(key, canvas, mBackspaceIcon, 0.52f);
             return true;
         }
-        if (hasOriginalEnterArtwork(key)) {
+        if (key.hasActionKeyBackground()) {
             final int width = Math.round(Math.min(key.getDrawWidth(), key.getHeight()) * 0.62f);
             final int height = Math.round(width * 66f / 80f);
             // The original 80x66 PNG has transparent padding on its right and bottom. Center its
@@ -249,11 +249,6 @@ public final class HuTaoKeyBackgroundRenderer {
         icon.clearColorFilter();
         icon.setBounds(left, top, left + width, top + height);
         icon.draw(canvas);
-    }
-
-    private static boolean hasOriginalEnterArtwork(@NonNull final Key key) {
-        return key.hasActionKeyBackground()
-                && KeyboardIconsSet.NAME_ENTER_KEY.equals(key.getIconName());
     }
 
     private static boolean isRoundFunction(final int code) {

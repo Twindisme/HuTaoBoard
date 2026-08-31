@@ -34,8 +34,8 @@ android {
         applicationId = "helium314.keyboard.hutao"
         minSdk = 21
         targetSdk = 36
-        versionCode = 400506
-        versionName = "4.0-hutao.6"
+        versionCode = 400507
+        versionName = "4.0-hutao.7"
         ndk {
             abiFilters.clear()
             abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
